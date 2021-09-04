@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mapper.BlogMapper">
+    <cache></cache>
+
+
+    <!--懒加载-->
+<!--
+    <resultMap id="blogMap" type="com.entity.Blog" autoMapping="true">
+        <result column="title" property="title"></result>
+        <collection property="comments" column="id" select="selectCommentsByBlogId" fetchType="lazy">
+        </collection>
+    </resultMap>
+-->
+
+    <!--联合查询-->
+    <resultMap id="blogComplexMap" type="com.entity.Blog" autoMapping="true">
+        <id column="id" property="id"></id>
+        <result column="title" property="title"></result>
+        <collection property="comments" ofType="com.entity.Comment" autoMapping="true" columnPrefix="comment_">
+        </collection>
+    </resultMap>
+
+    <!--映射的循环引用-->
+    <resultMap id="blogMapLoop" type="com.entity.Blog" autoMapping="true">
+        <result column="title" property="title"></result>
+        <association property="author" column="author" select="selectUserById"></association>
+        <collection property="comments"  ofType="com.entity.Comment" autoMapping="true" columnPrefix="comment_">
+            <association property="blog" javaType="com.entity.Blog" resultMap="blogMapLoop"></association>
+        </collection>
+    </resultMap>
+
+    <!--循环依赖-->
+    <resultMap id="blogMap" type="com.entity.Blog" autoMapping="true">
+        <result column="title" property="title"></result>
+        <association property="author" column="author" select="selectUserById"></association>
+        <collection property="comments" column="id" select="selectCommentsByBlogId">
+        </collection>
+    </resultMap>
+
+    <resultMap id="commentMap" type="com.entity.Comment" autoMapping="true">
+        <result column="title" property="title"></result>
+        <association property="blog" column="blog_id" select="selectBlogById"></association>
+    </resultMap>
+
+
+    <resultMap id="result_user" type="com.entity.User" autoMapping="true">
+    </resultMap>
+
+   <!-- <select id="selectCommentsByBlogId" resultType="com.entity.Comment">
+        select * from  comment where blog_id = #{id}
+    </select>-->
+
+    <select id="selectCommentsByBlogId" resultMap="commentMap">
+        select * from  comment where blog_id = #{id}
+    </select>
+
+    <select id="selectUserById" resultType="com.entity.User">
+        select * from  user where id = #{id}
+    </select>
+
+    <!--普通查询-->
+    <select id="selectBlogById" resultMap="blogMap">
+        select * from  blog where id = #{id}
+    </select>
+
+    <!--联合查询-->
+    <select id="selectBlogByIdWithComplex" resultMap="blogComplexMap">
+        select b.id,b.title,c.id as comment_id ,c.content as comment_content from  blog b left join comment c on b.id=c.blog_id where b.id = #{id}
+    </select>
+
+    <!--循环映射-->
+    <select id="selectBlogByIdWithComplexLoop" resultMap="blogMapLoop">
+        select b.id,b.title,c.id as comment_id ,c.content as comment_content from  blog b left join comment c on b.id=c.blog_id where b.id = #{id}
+    </select>
+
+    <!--动态sql处理-->
+    <select id="findUser" resultMap="result_user" flushCache="true">
+        select * from user
+        <where>
+            <if test="id!=null">
+                and  id=#{id}
+            </if>
+
+            <if test="name!=null">
+                <bind name="like_name" value="'%'+name+'%'"></bind>
+                and  name like #{like_name}
+            </if>
+
+            <if test="age!=null">
+                and  age=#{age}
+            </if>
+
+        </where>
+    </select>
+
+    <select id="selectBlogByMap" resultType="com.entity.Blog">
+        select * from  demo_user where id = #{id}
+    </select>
+
+    <select id="selectBlogByObject" resultType="com.entity.Blog">
+        select * from  demo_user where id = #{id}
+    </select>
+
+    <select id="selectBlogByParamAndObject" resultType="com.entity.Blog">
+        select * from  demo_user where id = #{id} and name=#{param2.name}
+    </select>
+
+</mapper>
